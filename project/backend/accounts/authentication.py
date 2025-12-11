@@ -8,22 +8,14 @@ from accounts.models import APIKey, UsageLog
 
 
 class APIKeyAuthentication(authentication.BaseAuthentication):
-    keyword = "Api-Key"
+    header = "Api-Key"
 
     def authenticate(self, request):
-        auth_header = authentication.get_authorization_header(request).decode("utf-8")
-        if not auth_header:
+        raw_key = request.headers.get(self.header) or request.META.get("HTTP_API_KEY")
+        if not raw_key:
             return None
 
-        try:
-            keyword, token = auth_header.split(" ", 1)
-        except ValueError:
-            raise exceptions.AuthenticationFailed("Invalid authorization header format.")
-
-        if keyword != self.keyword:
-            return None
-
-        api_key = self._get_api_key(token.strip())
+        api_key = self._get_api_key(raw_key.strip())
         if api_key is None:
             raise exceptions.AuthenticationFailed("Invalid API key.")
 

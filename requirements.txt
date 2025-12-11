@@ -1,0 +1,31 @@
+# Core framework
+Django>=5.0,<6.0
+
+# Django REST Framework
+djangorestframework>=3.15.0
+
+# Authentication & Security
+python-dotenv>=1.0.1
+
+# Useful utilities for hashing / security
+passlib>=1.7.4
+
+# For image handling (Pillow is needed for image processing)
+Pillow>=10.0.0
+
+# For async pipelines, LLMs, or LangGraph integration later
+langchain>=0.3.0
+langgraph>=0.1.0
+
+# HTTP requests (fetching remote images)
+requests>=2.32.0
+
+# Rate limiting or throttling helpers
+django-ratelimit>=4.0.0
+
+# Testing tools (optional but recommended)
+pytest>=8.0.0
+pytest-django>=4.8.0
+
+# For CORS when frontend connects later
+django-cors-headers>=4.3.0

@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure--$)%e&qvgc039w+zqlr0nzl9_@_1=3k#&uhu(k#@6gti(!-k75
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -38,11 +38,17 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "corsheaders",
     "accounts",
+    "fashion_tagger",
+    "api_gateway",
+    "common",
+    "logs",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -135,6 +141,9 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "user": "20/week",
+        "user": "20/d",
     },
 }
+
+# CORS (development only)
+CORS_ALLOW_ALL_ORIGINS = True

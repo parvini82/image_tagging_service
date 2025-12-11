@@ -2,11 +2,17 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
 
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "image_tagging_service.settings")
+    base_dir = Path(__file__).resolve().parent
+    backend_path = base_dir / "project" / "backend"
+    if backend_path.as_posix() not in sys.path:
+        sys.path.insert(0, backend_path.as_posix())
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
