@@ -1,0 +1,365 @@
+LANGRAPH → DJANGO INTEGRATION - QUICK REFERENCE
+================================================
+
+YOUR CONSTRAINT COMPLIANCE CHECKLIST
+=====================================
+
+[✓] Do NOT change authentication logic
+    → generate_tags() doesn't touch auth
+    → views.py keeps permission_classes = [IsAuthenticated]
+
+[✓] Do NOT modify rate limiting or quota enforcement
+    → All existing DRF throttling/permissions work as-is
+    → generate_tags() is a simple service call
+
+[✓] Do NOT change API response shape
+    → Endpoint still returns: {"image_url": "...", "tags": {...}}
+    → tags dict unchanged: {category, color, material}
+
+[✓] Do NOT rewrite project structure
+    → Only added: services/tagger.py + services/langgraph_service/
+    → Existing urls.py, views.py, models.py untouched (except views.py one line)
+
+[✓] Do NOT introduce new endpoints
+    → Modified POST /api/v1/tag/ only (existing endpoint)
+    → No new routes added
+
+
+MINIMAL CHANGES SUMMARY
+=======================
+
+File: fashion_tagger/services/tagger.py
+  Status: CREATE (new file, 200 lines)
+  Purpose: Service layer wrapping LangGraph
+  Exports: generate_tags(image_url: str, mode: str) -> Dict[str, Optional[str]]
+
+File: fashion_tagger/services/langgraph_service/
+  Status: CREATE FOLDER & COPY (your existing code)
+  Purpose: LangGraph pipeline modules
+  Content: image_to_tags.py, translate_tags.py, config.py, etc.
+
+File: fashion_tagger/views.py
+  Status: UPDATE (1 line changed)
+  Change: Replace fake tags with: tags = generate_tags(image_url)
+  
+File: .env or settings.py
+  Status: UPDATE (add config)
+  New vars: OPENROUTER_API_KEY, SERPAPI_API_KEY (optional)
+
+
+COPY-PASTE INTEGRATION (QUICKSTART)
+====================================
+
+1. Install LangGraph:
+   pip install langgraph
+
+2. Copy tagger.py to fashion_tagger/services/tagger.py
+   (provided in artifacts)
+
+3. Copy your LangGraph files to fashion_tagger/services/langgraph_service/
+
+4. Update views.py - find this:
+   
+   # OLD:
+   tags = {"category": "shirt", "color": "blue", "material": "cotton"}
+   
+   Replace with:
+   
+   # NEW:
+   from .services.tagger import generate_tags
+   tags = generate_tags(image_url)
+
+5. Test:
+   python manage.py test fashion_tagger
+
+6. Deploy with OPENROUTER_API_KEY set
+
+
+GENERATE_TAGS() FUNCTION SIGNATURE
+===================================
+
+def generate_tags(
+    image_url: str,
+    mode: str = "fast"
+) -> Dict[str, Optional[str]]:
+    """
+    Args:
+        image_url: Remote image URL (publicly accessible)
+        mode: "fast" (default) | "reasoning" | "advanced_reasoning"
+    
+    Returns:
+        {
+            "category": str | None,
+            "color": str | None,
+            "material": str | None
+        }
+    
+    Raises:
+        ImportError: If langgraph not installed
+    
+    Always returns safe defaults on error (all None values)
+    """
+
+
+OUTPUT NORMALIZATION (WHAT HAPPENS INSIDE)
+===========================================
+
+LangGraph returns:
+  {
+    "english": {"entities": [
+        {"name": "product_type", "values": ["t-shirt"]},
+        {"name": "color", "values": ["blue", "white"]},
+        {"name": "material", "values": ["cotton"]},
+        ...
+    ]},
+    "persian": {...}
+  }
+
+tagger.py normalizes to:
+  {
+    "category": "t-shirt",        # extracted from product_type
+    "color": "blue",              # first value from color array
+    "material": "cotton"          # first value from material array
+  }
+
+On error, returns:
+  {
+    "category": None,
+    "color": None,
+    "material": None
+  }
+
+
+MODE SELECTION (OPTIONAL)
+==========================
+
+Fast (default):
+  - Single vision model call
+  - No SerpAPI
+  - Latency: ~2-3s
+  - Cost: Low
+  - Use: Production, high volume
+
+Reasoning:
+  - Better reasoning vision model
+  - No SerpAPI
+  - Latency: ~3-5s
+  - Cost: Medium
+  - Use: Complex product analysis
+
+Advanced Reasoning:
+  - Reasoning model + SerpAPI reverse image search
+  - Uses Persian search context
+  - Latency: ~5-8s
+  - Cost: Medium-High
+  - Use: High-value items, accuracy critical
+
+Usage:
+  tags = generate_tags(image_url, mode="advanced_reasoning")
+  tags = generate_tags(image_url, mode="reasoning")
+  tags = generate_tags(image_url)  # defaults to "fast"
+
+
+ENVIRONMENT VARIABLES
+=====================
+
+Required (production):
+  OPENROUTER_API_KEY=sk_xxx...
+  OPENROUTER_SITE_URL=https://your-domain.com
+  OPENROUTER_SITE_TITLE=Your App Name
+
+Optional:
+  SERPAPI_API_KEY=xxx...          # only needed for advanced_reasoning
+  REQUEST_TIMEOUT=60              # seconds (default: 60)
+
+Add to .env:
+  OPENROUTER_API_KEY=your_key_here
+  OPENROUTER_SITE_URL=https://your-domain.com
+  OPENROUTER_SITE_TITLE=Fashion Tagger API
+
+
+LOGGING FOR MONITORING
+======================
+
+Add to Django settings.py:
+
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'fashion_tagger.services.tagger': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
+
+Watch logs for:
+  - "Tags generated successfully" → everything ok
+  - "Error generating tags" → API/parsing failure
+  - "Invalid image_url" → bad input
+  - "Image fetch failed" → URL not accessible
+
+
+ERROR HANDLING
+==============
+
+generate_tags() is defensive:
+
+1. Invalid URL input
+   → Returns {"category": None, "color": None, "material": None}
+   → Logs warning
+
+2. Image fetch timeout
+   → Returns safe defaults
+   → Logs error
+
+3. LangGraph API failure (OpenRouter error)
+   → Returns safe defaults
+   → Logs full error with context
+
+4. JSON parsing failure (LLM returned invalid JSON)
+   → Returns safe defaults
+   → Logs fallback attempt
+
+→ All errors are caught, logged, and return valid responses
+→ Never raises exception (fails gracefully)
+
+
+TESTING
+=======
+
+Quick test:
+  from fashion_tagger.services.tagger import generate_tags
+  
+  tags = generate_tags("https://example.com/product.jpg")
+  print(tags)  # {"category": "...", "color": "...", "material": "..."}
+
+Full endpoint test:
+  curl -X POST http://localhost:8000/api/v1/tag/ \
+    -H "Authorization: ApiKey your_key" \
+    -H "Content-Type: application/json" \
+    -d '{"image_url": "https://example.com/product.jpg"}'
+
+
+PERFORMANCE NOTES
+=================
+
+Caching (optional):
+  - LangGraph calls are expensive (~3-8s per image)
+  - Consider caching tags for repeated images
+  - Cache key: f"image_tags:{image_url}"
+  - TTL: 24 hours reasonable
+
+Async (future enhancement):
+  - generate_tags() is sync (OpenRouter doesn't have async Python SDK)
+  - Can wrap in async context if needed
+  - Use celery for background processing if needed
+
+
+TROUBLESHOOTING
+===============
+
+ImportError: No module 'langgraph'
+  → pip install langgraph
+
+OpenRouterError: OPENROUTER_API_KEY is empty
+  → Set env var: export OPENROUTER_API_KEY=sk_xxx
+  → Or add to .env file
+
+All tags returned as None
+  1. Check OpenRouter API key is valid
+  2. Check image URL is publicly accessible (no internal IPs)
+  3. Check logs for specific error
+  4. Try different mode: generate_tags(url, mode="fast")
+
+Image fetch timeout
+  → Increase REQUEST_TIMEOUT in .env
+  → Check image file size (limit: 50MB)
+  → Check network connectivity
+
+Module not found: langgraph_service
+  → Ensure langgraph_service/ folder is in fashion_tagger/services/
+  → Ensure __init__.py present in folder
+  → Check import path: from .services.tagger import generate_tags
+
+
+FILES TO CREATE/COPY
+====================
+
+CREATE:
+  ✓ fashion_tagger/services/tagger.py (provided)
+
+COPY:
+  ✓ fashion_tagger/services/langgraph_service/__init__.py
+  ✓ fashion_tagger/services/langgraph_service/config.py
+  ✓ fashion_tagger/services/langgraph_service/model_client.py
+  ✓ fashion_tagger/services/langgraph_service/image_to_tags.py
+  ✓ fashion_tagger/services/langgraph_service/translate_tags.py
+  ✓ fashion_tagger/services/langgraph_service/serpapi_search.py
+  ✓ fashion_tagger/services/langgraph_service/merge_results.py
+  ✓ fashion_tagger/services/langgraph_service/langgraph_service.py
+
+MODIFY:
+  ✓ fashion_tagger/views.py (1 line + 1 import)
+  ✓ .env or settings.py (add OPENROUTER_API_KEY)
+
+
+DEPLOYMENT CHECKLIST
+====================
+
+[ ] pip install langgraph
+[ ] Copy tagger.py to services/
+[ ] Copy langgraph_service/ folder to services/
+[ ] Update views.py (import + one line)
+[ ] Set OPENROUTER_API_KEY in production
+[ ] Test endpoint with real image URL
+[ ] Monitor logs for errors
+[ ] Set up caching (optional)
+[ ] Configure timeouts for your infrastructure
+[ ] Set up alerts for "Error generating tags" in logs
+
+
+API CONTRACT (UNCHANGED)
+========================
+
+POST /api/v1/tag/
+Authorization: ApiKey your_key
+
+Request:
+  {"image_url": "https://example.com/product.jpg"}
+
+Response (200):
+  {
+    "image_url": "https://example.com/product.jpg",
+    "tags": {
+      "category": "t-shirt",
+      "color": "blue",
+      "material": "cotton"
+    }
+  }
+
+Response (400):
+  {"error": "image_url is required"}
+
+Response (500):
+  {"error": "Failed to generate tags"}
+
+Everything else: unchanged
+  - Auth still required
+  - Rate limiting still applies
+  - Response format identical
+  - Status codes same
+
+
+SUPPORT CONTACTS
+================
+
+LangGraph: https://github.com/langchain-ai/langgraph
+OpenRouter: https://openrouter.ai
+Django: https://www.djangoproject.com
+
+Questions? Check logs first:
+  tail -f logs/django.log | grep "fashion_tagger"
