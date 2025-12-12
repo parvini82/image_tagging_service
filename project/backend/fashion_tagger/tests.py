@@ -275,15 +275,15 @@ class TestQuotaExceeded(ImageTagAuthenticationTests):
         self.assertEqual(response.status_code, 429)
 
     def test_high_quota_allows_many_requests(self):
-        """Verify that user with high quota can make multiple requests."""
-        _, _, raw_key = self._create_user_with_api_key(weekly_quota=100)
+        """Verify that user with high quota can make exactly quota number of requests."""
+        _, _, raw_key = self._create_user_with_api_key(weekly_quota=10)
         
-        for i in range(50):
+        for i in range(10):
             response = self._make_request(api_key=raw_key)
             self.assertEqual(response.status_code, 200, f"Request {i+1} should succeed")
         
-        response51 = self._make_request(api_key=raw_key)
-        self.assertEqual(response51.status_code, 429, "Request 51 should fail")
+        response11 = self._make_request(api_key=raw_key)
+        self.assertEqual(response11.status_code, 429, "Request 11 should fail with 429")
 
 
 class TestUsageLogging(ImageTagAuthenticationTests):
