@@ -29,12 +29,10 @@ def _auth_headers() -> Dict[str, str]:
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
     }
-
     if OPENROUTER_SITE_URL:
         headers["HTTP-Referer"] = OPENROUTER_SITE_URL
     if OPENROUTER_SITE_TITLE:
         headers["X-Title"] = OPENROUTER_SITE_TITLE
-
     return headers
 
 
@@ -51,7 +49,6 @@ def extract_json_from_text(text: str) -> Tuple[Optional[dict], Optional[str]]:
         return json.loads(text), None
     except Exception:
         pass
-
     try:
         start = text.index("{")
         end = text.rindex("}") + 1
@@ -82,7 +79,6 @@ class OpenRouterClient:
             "model": model,
             "messages": messages,
         }
-
         if temperature is not None:
             payload["temperature"] = temperature
         if response_format is not None:
@@ -94,26 +90,22 @@ class OpenRouterClient:
                 resp = requests.post(
                     self.base_url, headers=headers, json=payload, timeout=self.timeout
                 )
-
                 if resp.status_code != 200:
                     raise OpenRouterError(
                         f"OpenRouter HTTP {resp.status_code}: {resp.text[:300]}"
                     )
-
                 data = resp.json()
                 content = data["choices"][0]["message"]["content"]
                 return {
                     "raw": data,
                     "content": content,
                 }
-
             except Exception as e:
                 last_err = e
                 if attempt < max_retries:
                     time.sleep(0.8 * (attempt + 1))
                 else:
                     raise OpenRouterError(f"OpenRouter call failed: {e}") from e
-
         raise OpenRouterError(f"OpenRouter call failed: {last_err}")
 
     def call_json(
@@ -133,7 +125,6 @@ class OpenRouterClient:
             temperature=temperature,
             response_format=response_format,
         )
-
         content = out.get("content", "")
         obj, raw = extract_json_from_text(content)
         return {

@@ -8,7 +8,7 @@ from .model_client import (
 )
 
 
-def build_vision_prompt() -> str:
+def build_prompt() -> str:
     return (
         "You are an expert visual Named Entity Recognition (NER) model specialized "
         "in analyzing apparel and fashion product images.\n\n"
@@ -26,13 +26,13 @@ def build_vision_prompt() -> str:
         "Use concise, standardized terms for entity values.\n\n"
         "Example output format:\n"
         "{\n"
-        ' "entities": [\n'
-        ' {"name": "product_type", "values": ["t-shirt"]},\n'
-        ' {"name": "color", "values": ["blue", "white"]},\n'
-        ' {"name": "material", "values": ["cotton"]},\n'
-        ' {"name": "pattern", "values": ["solid"]},\n'
-        ' {"name": "sleeve_type", "values": ["short-sleeve"]}\n'
-        " ]\n"
+        '  "entities": [\n'
+        '    {"name": "product_type", "values": ["t-shirt"]},\n'
+        '    {"name": "color", "values": ["blue", "white"]},\n'
+        '    {"name": "material", "values": ["cotton"]},\n'
+        '    {"name": "pattern", "values": ["solid"]},\n'
+        '    {"name": "sleeve_type", "values": ["short-sleeve"]}\n'
+        "  ]\n"
         "}\n\n"
         "IMPORTANT: Respond with valid JSON only. Do not include any explanatory "
         "text, markdown formatting, or additional commentary."
@@ -40,13 +40,13 @@ def build_vision_prompt() -> str:
 
 
 def image_to_tags_node(state: Dict[str, Any]) -> Dict[str, Any]:
-    """Vision model node: analyze image and extract English tags."""
     image_url = state.get("image_url")
     if not image_url:
         raise ValueError("image_to_tags_node: 'image_url' is missing in state")
 
     client = OpenRouterClient()
-    prompt = build_vision_prompt()
+    prompt = build_prompt()
+
     messages = [
         {
             "role": "user",

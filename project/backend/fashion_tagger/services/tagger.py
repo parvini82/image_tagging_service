@@ -35,45 +35,7 @@ def _extract_tag_value(entity_list: list, entity_name: str) -> Optional[str]:
     return None
 
 
-def _normalize_langgraph_output(langgraph_result: Dict[str, Any]) -> Dict[str, Optional[str]]:
-    """Normalize LangGraph pipeline output to API contract.
-    
-    Converts the complex LangGraph entity structure to simple tag values.
-    Handles both structured entity lists and direct dict outputs.
-    
-    Args:
-        langgraph_result: Output from LangGraph pipeline
-    
-    Returns:
-        Dict with 'category', 'color', 'material' keys (values can be None)
-    """
-    # Try normalized output first (from translate_tags node)
-    normalized = langgraph_result.get("normalized", {})
-    if isinstance(normalized, dict):
-        # Direct dict format (from improved translate node)
-        if "category" in normalized or "color" in normalized or "material" in normalized:
-            return {
-                "category": normalized.get("category"),
-                "color": normalized.get("color"),
-                "material": normalized.get("material"),
-            }
-    
-    # Fallback: try structured entity format (legacy)
-    english = langgraph_result.get("english", {})
-    if isinstance(english, dict):
-        entities = english.get("entities", [])
-        return {
-            "category": _extract_tag_value(entities, "product_type"),
-            "color": _extract_tag_value(entities, "color"),
-            "material": _extract_tag_value(entities, "material"),
-        }
-    
-    # All extraction failed
-    logger.warning("Could not normalize LangGraph output: %s", langgraph_result)
-    return {"category": None, "color": None, "material": None}
-
-
-def generate_tags(image_url: str, mode: str = "fast") -> Dict[str, Optional[str]]:
+def generate_tags(image_url: str, mode: str = "advanced_reasoning") -> Dict[str, Optional[str]]:
     """Generate fashion tags for an image using the LangGraph pipeline.
     
     This is the primary public API for the tagging service.
@@ -99,8 +61,7 @@ def generate_tags(image_url: str, mode: str = "fast") -> Dict[str, Optional[str]
         result = run_langgraph_on_url(image_url, mode=mode)
         
         # Normalize output to API contract
-        tags = _normalize_langgraph_output(result)
-        return tags
+        return result
     
     except OpenRouterError as e:
         logger.error("OpenRouter API error while processing %s: %s", image_url, str(e))

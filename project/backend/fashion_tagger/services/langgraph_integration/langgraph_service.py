@@ -1,9 +1,7 @@
 import base64
 from typing import Annotated, TypedDict, Any, Dict
 import operator
-
 from langgraph.graph import StateGraph, END
-
 from .image_to_tags import image_to_tags_node
 from .merge_results import merge_results_node
 from .serpapi_search import serpapi_search_node
@@ -42,7 +40,6 @@ def merge_for_translate_node(state: Dict[str, Any]) -> Dict[str, Any]:
         "image_tags_en": state.get("image_tags_en", {}),
         "serpapi_results": state.get("serpapi_results", {}),
     }
-
     return {**state, "merged_data": merged_data}
 
 
@@ -55,11 +52,11 @@ def should_use_serpapi_node(state: Dict[str, Any]) -> str:
 
 
 def _compile_workflow(mode: str = "fast") -> StateGraph:
-    """Compile the LangGraph workflow based on mode."""
-    workflow = StateGraph(WorkflowState)
+    workflow: StateGraph = StateGraph(WorkflowState)
+
     use_serpapi = should_use_serpapi(mode)
 
-    # Add nodes
+    # Nodes
     workflow.add_node("fan_out", fan_out_node)
     workflow.add_node("image_to_tags", image_to_tags_node)
     workflow.add_node("merge_for_translate", merge_for_translate_node)
@@ -85,21 +82,43 @@ def _compile_workflow(mode: str = "fast") -> StateGraph:
     # Continue sequence
     workflow.add_edge("merge_for_translate", "translate_tags")
     workflow.add_edge("translate_tags", "merge_results")
+
     workflow.set_finish_point("merge_results")
 
     return workflow.compile()
 
 
+def run_langgraph_on_bytes(image_bytes: bytes, mode: str = "fast") -> Dict[str, Any]:
+    """Convenience entry: image bytes → data URI → invoke graph."""
+    b64 = base64.b64encode(image_bytes).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+
+    # Get configuration based on mode
+    vision_model = get_vision_model(mode)
+    translate_model = get_translate_model(mode)
+    use_serpapi_flag = should_use_serpapi(mode)
+
+    # Compile workflow based on mode
+    workflow = _compile_workflow(mode)
+
+    initial_state = {
+        "image_url": data_uri,
+        "mode": mode,
+        "vision_model": vision_model,
+        "translate_model": translate_model,
+        "use_serpapi": use_serpapi_flag
+    }
+
+    final_state = workflow.invoke(initial_state)
+
+    return {
+        "english": final_state.get("image_tags_en", {}),
+        "persian": final_state.get("final_output", {}),
+    }
+
+
 def run_langgraph_on_url(image_url: str, mode: str = "fast") -> Dict[str, Any]:
-    """Execute the LangGraph pipeline on a publicly accessible image URL.
-    
-    Args:
-        image_url: Public URL of the image to analyze
-        mode: Processing mode ("fast", "reasoning", "advanced_reasoning")
-    
-    Returns:
-        Dict with 'english' and 'normalized' keys containing tag analysis
-    """
+    """Convenience entry: image URL → invoke graph."""
     # Get configuration based on mode
     vision_model = get_vision_model(mode)
     translate_model = get_translate_model(mode)
@@ -113,11 +132,12 @@ def run_langgraph_on_url(image_url: str, mode: str = "fast") -> Dict[str, Any]:
         "mode": mode,
         "vision_model": vision_model,
         "translate_model": translate_model,
-        "use_serpapi": use_serpapi_flag,
+        "use_serpapi": use_serpapi_flag
     }
 
     final_state = workflow.invoke(initial_state)
+
     return {
         "english": final_state.get("image_tags_en", {}),
-        "normalized": final_state.get("final_output", {}),
+        "persian": final_state.get("final_output", {}),
     }

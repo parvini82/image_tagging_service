@@ -8,6 +8,7 @@ def serpapi_search_node(state: Dict[str, Any]) -> Dict[str, Any]:
     Reverse image search via SerpAPI (Google Reverse Image).
     Cleans response: keeps only titles from image_results and organic_results.
     """
+
     image_url = state.get("image_url")
 
     # SerpAPI needs a publicly reachable URL, not a data URI.
@@ -30,8 +31,8 @@ def serpapi_search_node(state: Dict[str, Any]) -> Dict[str, Any]:
         "engine": "google_reverse_image",
         "image_url": image_url,
         "api_key": api_key,
-        "gl": "ir",  # country
-        "hl": "fa",  # language
+        "gl": "ir",   # country
+        "hl": "fa",   # language
     }
 
     try:
@@ -41,6 +42,7 @@ def serpapi_search_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
         # Extract only titles
         titles: List[str] = []
+
         for r in data.get("image_results", []):
             title = r.get("title")
             if title:
@@ -48,6 +50,7 @@ def serpapi_search_node(state: Dict[str, Any]) -> Dict[str, Any]:
                 if "آبادیس" in title or "abadis" in title.lower():
                     continue
                 titles.append(title)
+
         for r in data.get("organic_results", []):
             title = r.get("title")
             if title:
@@ -55,8 +58,8 @@ def serpapi_search_node(state: Dict[str, Any]) -> Dict[str, Any]:
                 if "آبادیس" in title or "abadis" in title.lower():
                     continue
                 titles.append(title)
-
         limited_titles = titles[:5]
+        print(limited_titles)
         cleaned_text = "\n".join(limited_titles).strip()
 
         state["serpapi_results"] = {
