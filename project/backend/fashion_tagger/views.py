@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 
 from accounts.authentication import APIKeyAuthentication
 from accounts.models import UsageLog
+from .services.tagger import generate_tags
 
 
 class ImageTagView(APIView):
@@ -20,8 +21,10 @@ class ImageTagView(APIView):
         if not image_url:
             return Response({"detail": "image_url is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        dummy_tags = {"category": "tshirt", "color": "red", "material": "cotton"}
-        return Response({"image_url": image_url, "tags": dummy_tags}, status=status.HTTP_200_OK)
+        # Call the LangGraph tagging service
+        tags = generate_tags(image_url)
+        
+        return Response({"image_url": image_url, "tags": tags}, status=status.HTTP_200_OK)
 
     def _log_usage(self, user, endpoint: str, success: bool):
         UsageLog.objects.create(user=user, used_at=timezone.now(), endpoint=endpoint, success=success)
