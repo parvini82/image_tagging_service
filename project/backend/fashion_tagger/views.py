@@ -1,7 +1,6 @@
 from django.utils import timezone
-from rest_framework import permissions, status
+from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from accounts.authentication import APIKeyAuthentication
@@ -10,8 +9,7 @@ from accounts.models import UsageLog
 
 class ImageTagView(APIView):
     authentication_classes = [APIKeyAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-    throttle_classes = [UserRateThrottle]
+    throttle_classes = []  # DRF throttling disabled; quota enforced in APIKeyAuthentication
 
     def post(self, request):
         image_url = request.data.get("image_url")

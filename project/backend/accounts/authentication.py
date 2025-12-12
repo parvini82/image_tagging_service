@@ -2,20 +2,21 @@ import secrets
 from datetime import timedelta
 
 from django.utils import timezone
+from django.db import transaction
 from rest_framework import authentication, exceptions
+from rest_framework.exceptions import Throttled
 
 from accounts.models import APIKey, UsageLog
 
 
 class APIKeyAuthentication(authentication.BaseAuthentication):
     header = "Api-Key"
+    keyword = "Api-Key"
 
     def authenticate(self, request):
-        raw_key = request.headers.get(self.header) or request.META.get("HTTP_API_KEY")
-        if not raw_key:
-            return None
+        raw_key = self._get_raw_key(request)
 
-        api_key = self._get_api_key(raw_key.strip())
+        api_key = self._get_api_key(raw_key)
         if api_key is None:
             raise exceptions.AuthenticationFailed("Invalid API key.")
 
@@ -29,6 +30,29 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
         api_key.save(update_fields=["last_used_at"])
 
         return user, None
+
+    def authenticate_header(self, request):
+        return self.keyword
+
+    def _get_raw_key(self, request) -> str:
+        # Prefer Authorization: Api-Key <token> if provided
+        auth_header = request.headers.get("Authorization") or request.META.get("HTTP_AUTHORIZATION")
+        if auth_header:
+            parts = auth_header.split(" ", 1)
+            if len(parts) != 2 or parts[0] != self.keyword:
+                raise exceptions.AuthenticationFailed("Invalid API key.")
+            token = parts[1]
+        else:
+            token = request.headers.get(self.header) or request.META.get("HTTP_API_KEY")
+
+        if token is None:
+            raise exceptions.AuthenticationFailed("API key required.")
+
+        token = token.strip()
+        if not token:
+            raise exceptions.AuthenticationFailed("API key required.")
+
+        return token
 
     def _get_api_key(self, raw_key: str) -> APIKey | None:
         if not raw_key:
@@ -52,13 +76,27 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
 
     def _enforce_quota(self, user):
         now = timezone.now()
-        window_start = user.quota_reset_at or now - timedelta(days=7)
+        seven_days_ago = now - timedelta(days=7)
 
-        if user.quota_reset_at is None or user.quota_reset_at <= now - timedelta(days=7):
-            user.quota_reset_at = now
-            user.save(update_fields=["quota_reset_at"])
+        # Ensure quota checks and reset are atomic to avoid concurrent overrun.
+        with transaction.atomic():
+            locked_user = (
+                type(user)
+                .objects.select_for_update()
+                .get(pk=user.pk)
+            )
 
-        usage_count = UsageLog.objects.filter(user=user, used_at__gte=window_start).count()
-        if usage_count >= user.weekly_quota:
-            raise exceptions.AuthenticationFailed("API quota exceeded.")
+            reset_needed = locked_user.quota_reset_at is None or locked_user.quota_reset_at <= seven_days_ago
+            if reset_needed:
+                locked_user.quota_reset_at = now
+                locked_user.save(update_fields=["quota_reset_at"])
+
+            window_start = locked_user.quota_reset_at
+
+            usage_count = UsageLog.objects.filter(user=locked_user, used_at__gte=window_start).count()
+
+            # Enforce quota strictly before logging the request.
+            if locked_user.weekly_quota == 0 or (usage_count + 1) > locked_user.weekly_quota:
+                # Use DRF Throttled to return HTTP 429 while keeping auth semantics clean.
+                raise Throttled(detail="API quota exceeded.")
 

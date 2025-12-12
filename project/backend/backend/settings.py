@@ -137,12 +137,8 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "accounts.authentication.APIKeyAuthentication",
     ],
-    "DEFAULT_THROTTLE_CLASSES": [
-        "rest_framework.throttling.UserRateThrottle",
-    ],
-    "DEFAULT_THROTTLE_RATES": {
-        "user": "20/d",
-    },
+    # Stage 1 MVP relies on custom API-key quota enforcement inside
+    # APIKeyAuthentication._enforce_quota(), so DRF throttling stays disabled.
 }
 
 # CORS (development only)
