@@ -1,5 +1,5 @@
 from django.contrib.auth import login, logout
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -75,6 +75,7 @@ class MeView(APIView):
         return Response(serializer.data)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class APIKeyViewSet(viewsets.ModelViewSet):
     """Manage API keys for the authenticated user."""
     serializer_class = MaskedAPIKeySerializer
