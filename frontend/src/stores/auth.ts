@@ -1,18 +1,16 @@
 import { writable } from 'svelte/store';
-import type { ApiKeyInfo } from '../types/api';
+import type { User } from '../types/api';
 
 interface AuthState {
   isAuthenticated: boolean;
-  apiKey: string | null;
-  keyInfo: ApiKeyInfo | null;
+  user: User | null;
   error: string | null;
   loading: boolean;
 }
 
 const initialState: AuthState = {
   isAuthenticated: false,
-  apiKey: null,
-  keyInfo: null,
+  user: null,
   error: null,
   loading: false,
 };
@@ -22,11 +20,8 @@ function createAuthStore() {
 
   return {
     subscribe,
-    setApiKey: (key: string) => {
-      update((state) => ({ ...state, apiKey: key }));
-    },
-    setKeyInfo: (info: ApiKeyInfo) => {
-      update((state) => ({ ...state, keyInfo: info }));
+    setUser: (user: User) => {
+      update((state) => ({ ...state, user, isAuthenticated: true }));
     },
     setError: (error: string | null) => {
       update((state) => ({ ...state, error }));
@@ -34,29 +29,24 @@ function createAuthStore() {
     setLoading: (loading: boolean) => {
       update((state) => ({ ...state, loading }));
     },
-    authenticate: (key: string, info: ApiKeyInfo) => {
-      localStorage.setItem('apiKey', key);
+    authenticate: (user: User) => {
       set({
         isAuthenticated: true,
-        apiKey: key,
-        keyInfo: info,
+        user,
         error: null,
         loading: false,
       });
     },
     logout: () => {
-      localStorage.removeItem('apiKey');
       set(initialState);
     },
-    restoreSession: () => {
-      const storedKey = localStorage.getItem('apiKey');
-      if (storedKey) {
-        update((state) => ({
-          ...state,
-          apiKey: storedKey,
-          isAuthenticated: true,
-        }));
-      }
+    restoreSession: (user: User) => {
+      set({
+        isAuthenticated: true,
+        user,
+        error: null,
+        loading: false,
+      });
     },
   };
 }
