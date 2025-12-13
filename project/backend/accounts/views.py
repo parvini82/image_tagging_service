@@ -52,6 +52,7 @@ class LoginView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LogoutView(APIView):
     """Logout user and clear session."""
     permission_classes = [IsAuthenticated]
@@ -64,6 +65,7 @@ class LogoutView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class MeView(APIView):
     """Get current authenticated user info."""
     permission_classes = [IsAuthenticated]
