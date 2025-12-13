@@ -38,15 +38,12 @@
 <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
   <div class="w-full max-w-md">
     <div class="bg-white rounded-lg shadow-2xl p-8">
-      {/* Header */}
       <div class="mb-8 text-center">
         <h1 class="text-3xl font-bold text-slate-900 mb-2">Image Tagging API</h1>
         <p class="text-slate-600">Dashboard</p>
       </div>
 
-      {/* Form */}
       <form on:submit|preventDefault={handleLogin} class="space-y-6">
-        {/* API Key Input */}
         <div>
           <label for="apiKey" class="block text-sm font-medium text-slate-700 mb-2">
             API Key
@@ -62,14 +59,12 @@
           />
         </div>
 
-        {/* Error Message */}
         {#if error}
           <div class="bg-red-50 border border-red-200 rounded-lg p-4">
             <p class="text-red-800 text-sm font-medium">{error}</p>
           </div>
         {/if}
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
@@ -84,7 +79,6 @@
         </button>
       </form>
 
-      {/* Footer */}
       <p class="text-center text-slate-500 text-xs mt-8">
         This dashboard is for API key owners only.
       </p>
