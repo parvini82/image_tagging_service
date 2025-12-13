@@ -135,7 +135,7 @@ AUTH_USER_MODEL = "accounts.User"
 # DRF configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "django.contrib.auth.backends.ModelBackend",  # Session auth for UI
+        "accounts.authentication.CsrfExemptSessionAuthentication",  # Session auth without CSRF
         "accounts.authentication.APIKeyAuthentication",  # API key auth for API endpoints
     ],
     "DEFAULT_PERMISSION_CLASSES": [
@@ -156,3 +156,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF configuration
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]

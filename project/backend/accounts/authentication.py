@@ -96,3 +96,14 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
 
             if locked_user.weekly_quota == 0 or (usage_count + 1) > locked_user.weekly_quota:
                 raise Throttled(detail="API quota exceeded.")
+
+
+class CsrfExemptSessionAuthentication(authentication.SessionAuthentication):
+    """
+    Session authentication without CSRF checks.
+    Use this for API endpoints that need session auth but are called from SPA.
+    """
+
+    def enforce_csrf(self, request):
+        # Skip CSRF check for session authentication
+        return

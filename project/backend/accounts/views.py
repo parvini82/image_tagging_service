@@ -1,4 +1,6 @@
 from django.contrib.auth import login, logout
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -15,9 +17,11 @@ from .serializers import (
 from .services.api_key import generate_api_key
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class RegisterView(APIView):
     """Register a new user."""
     permission_classes = [AllowAny]
+    authentication_classes = []  # Disable authentication for registration
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -30,9 +34,11 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     """Login user and set session cookie."""
     permission_classes = [AllowAny]
+    authentication_classes = []  # Disable authentication for login
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -46,6 +52,7 @@ class LoginView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LogoutView(APIView):
     """Logout user and clear session."""
     permission_classes = [IsAuthenticated]
@@ -58,6 +65,7 @@ class LogoutView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class MeView(APIView):
     """Get current authenticated user info."""
     permission_classes = [IsAuthenticated]
@@ -67,6 +75,7 @@ class MeView(APIView):
         return Response(serializer.data)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class APIKeyViewSet(viewsets.ModelViewSet):
     """Manage API keys for the authenticated user."""
     serializer_class = MaskedAPIKeySerializer
