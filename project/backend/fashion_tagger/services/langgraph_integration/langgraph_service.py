@@ -1,5 +1,7 @@
 import base64
-from typing import Annotated, TypedDict, Any, Dict
+import os
+import logging
+from typing import Annotated, TypedDict, Any, Dict, Callable
 import operator
 from langgraph.graph import StateGraph, END
 from .image_to_tags import image_to_tags_node
@@ -8,9 +10,72 @@ from .serpapi_search import serpapi_search_node
 from .translate_tags import translate_tags_node
 from .config import get_vision_model, get_translate_model, should_use_serpapi
 
+logger = logging.getLogger(__name__)
+DEBUG_LANGGRAPH = os.getenv("DEBUG_LANGGRAPH", "").lower() == "true"
+
 
 def last(a, b):
     return b
+
+
+def _calculate_size(obj: Any) -> int:
+    """Calculate approximate size of an object in bytes."""
+    try:
+        import sys
+        return sys.getsizeof(str(obj))
+    except Exception:
+        return 0
+
+
+def _debug_wrap_node(node_func: Callable, node_name: str) -> Callable:
+    """Wrap a node function with debug logging.
+    
+    When DEBUG_LANGGRAPH=true, logs node name, keys added/changed,
+    and payload sizes after each node execution.
+    """
+    if not DEBUG_LANGGRAPH:
+        return node_func
+    
+    def wrapped_node(state: Dict[str, Any]) -> Dict[str, Any]:
+        # Execute the original node
+        result = node_func(state)
+        
+        # Determine keys that were added or changed
+        state_keys = set(state.keys())
+        result_keys = set(result.keys())
+        new_or_changed_keys = result_keys - state_keys
+        
+        # For keys in both, check if values changed
+        for key in state_keys & result_keys:
+            if state.get(key) != result.get(key):
+                new_or_changed_keys.add(key)
+        
+        # Calculate sizes for changed keys
+        size_info = {}
+        for key in new_or_changed_keys:
+            value = result.get(key)
+            size_info[key] = _calculate_size(value)
+        
+        # Log the debug information
+        if new_or_changed_keys:
+            keys_list = sorted(new_or_changed_keys)
+            # Show keys that were added/changed
+            keys_str = ", ".join(keys_list)
+            # Show sizes for context
+            sizes_parts = [f"{k}={size_info[k]}B" for k in keys_list]
+            sizes_str = ", ".join(sizes_parts)
+            logger.debug(
+                "[LangGraph][%s] added: %s (sizes: %s)",
+                node_name,
+                keys_str,
+                sizes_str,
+            )
+        else:
+            logger.debug("[LangGraph][%s] no state changes", node_name)
+        
+        return result
+    
+    return wrapped_node
 
 
 class WorkflowState(TypedDict, total=False):
@@ -56,12 +121,12 @@ def _compile_workflow(mode: str = "fast") -> StateGraph:
 
     use_serpapi = should_use_serpapi(mode)
 
-    # Nodes
-    workflow.add_node("fan_out", fan_out_node)
-    workflow.add_node("image_to_tags", image_to_tags_node)
-    workflow.add_node("merge_for_translate", merge_for_translate_node)
-    workflow.add_node("translate_tags", translate_tags_node)
-    workflow.add_node("merge_results", merge_results_node)
+    # Nodes - wrap with debug instrumentation if enabled
+    workflow.add_node("fan_out", _debug_wrap_node(fan_out_node, "fan_out"))
+    workflow.add_node("image_to_tags", _debug_wrap_node(image_to_tags_node, "image_to_tags"))
+    workflow.add_node("merge_for_translate", _debug_wrap_node(merge_for_translate_node, "merge_for_translate"))
+    workflow.add_node("translate_tags", _debug_wrap_node(translate_tags_node, "translate_tags"))
+    workflow.add_node("merge_results", _debug_wrap_node(merge_results_node, "merge_results"))
 
     # Set entry point
     workflow.set_entry_point("fan_out")
@@ -70,8 +135,8 @@ def _compile_workflow(mode: str = "fast") -> StateGraph:
     workflow.add_edge("fan_out", "image_to_tags")
 
     if use_serpapi:
-        # Add serpapi node and edges
-        workflow.add_node("serpapi_search", serpapi_search_node)
+        # Add serpapi node and edges - wrap with debug instrumentation if enabled
+        workflow.add_node("serpapi_search", _debug_wrap_node(serpapi_search_node, "serpapi_search"))
         workflow.add_edge("fan_out", "serpapi_search")
         workflow.add_edge("image_to_tags", "merge_for_translate")
         workflow.add_edge("serpapi_search", "merge_for_translate")
