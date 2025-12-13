@@ -5,16 +5,25 @@
 
   let email = '';
   let password = '';
+  let password2 = '';
   let error = '';
   let loading = false;
 
-  async function handleLogin() {
+  async function handleRegister() {
     if (!email.trim()) {
       error = 'Please enter your email.';
       return;
     }
     if (!password.trim()) {
-      error = 'Please enter your password.';
+      error = 'Please enter a password (at least 8 characters).';
+      return;
+    }
+    if (password.length < 8) {
+      error = 'Password must be at least 8 characters.';
+      return;
+    }
+    if (password !== password2) {
+      error = 'Passwords do not match.';
       return;
     }
 
@@ -22,11 +31,12 @@
     error = '';
 
     try {
+      await apiClient.register(email, password);
       const user = await apiClient.login(email, password);
       authStore.authenticate(user);
       push('/dashboard');
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      error = err instanceof Error ? err.message : 'Registration failed. Please try again.';
     } finally {
       loading = false;
     }
@@ -34,7 +44,7 @@
 
   function handleKeyPress(e: KeyboardEvent) {
     if (e.key === 'Enter' && !loading) {
-      handleLogin();
+      handleRegister();
     }
   }
 </script>
@@ -43,11 +53,11 @@
   <div class="w-full max-w-md">
     <div class="bg-white rounded-lg shadow-2xl p-8">
       <div class="mb-8 text-center">
-        <h1 class="text-3xl font-bold text-slate-900 mb-2">Image Tagging API</h1>
-        <p class="text-slate-600">Dashboard</p>
+        <h1 class="text-3xl font-bold text-slate-900 mb-2">Create Account</h1>
+        <p class="text-slate-600">Image Tagging API</p>
       </div>
 
-      <form on:submit|preventDefault={handleLogin} class="space-y-6">
+      <form on:submit|preventDefault={handleRegister} class="space-y-6">
         <div>
           <label for="email" class="block text-sm font-medium text-slate-700 mb-2">
             Email
@@ -56,7 +66,6 @@
             id="email"
             type="email"
             bind:value={email}
-            on:keypress={handleKeyPress}
             placeholder="your@email.com"
             class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
             disabled={loading}
@@ -65,12 +74,26 @@
 
         <div>
           <label for="password" class="block text-sm font-medium text-slate-700 mb-2">
-            Password
+            Password (min 8 characters)
           </label>
           <input
             id="password"
             type="password"
             bind:value={password}
+            placeholder="••••••••"
+            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+            disabled={loading}
+          />
+        </div>
+
+        <div>
+          <label for="password2" class="block text-sm font-medium text-slate-700 mb-2">
+            Confirm Password
+          </label>
+          <input
+            id="password2"
+            type="password"
+            bind:value={password2}
             on:keypress={handleKeyPress}
             placeholder="••••••••"
             class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
@@ -91,15 +114,15 @@
         >
           {#if loading}
             <div class="spinner"></div>
-            <span>Signing in...</span>
+            <span>Creating Account...</span>
           {:else}
-            <span>Sign In</span>
+            <span>Create Account</span>
           {/if}
         </button>
       </form>
 
       <div class="mt-6 text-center">
-        <p class="text-slate-600 text-sm">Don't have an account? <a href="#/register" class="text-blue-600 hover:text-blue-700 font-medium">Register</a></p>
+        <p class="text-slate-600 text-sm">Already have an account? <a href="#/login" class="text-blue-600 hover:text-blue-700 font-medium">Sign In</a></p>
       </div>
     </div>
   </div>

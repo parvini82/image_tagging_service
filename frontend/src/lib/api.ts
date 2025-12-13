@@ -1,6 +1,5 @@
-import type { ApiKeyInfo, TaggingRequest, TaggingResponse, UsageEntry } from '../types/api';
+import type { ApiKeyInfo, TaggingRequest, TaggingResponse } from '../types/api';
 import { authStore } from '../stores/auth';
-import { get } from 'svelte/store';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -19,10 +18,6 @@ class ApiClient {
       ...additionalHeaders,
     };
 
-    if (this.apiKey) {
-      headers['Authorization'] = `Api-Key ${this.apiKey}`;
-    }
-
     return headers;
   }
 
@@ -37,67 +32,94 @@ class ApiClient {
     return data;
   }
 
-  async validateApiKey(key: string): Promise<ApiKeyInfo> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/health/`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Api-Key ${key}`,
-        'Content-Type': 'application/json',
-      },
-    });
+  // ============= UI Auth Endpoints (Session-based) =============
 
-    if (response.status === 401) {
-      throw new Error('Invalid API key.');
-    }
-
-    if (response.status === 429) {
-      throw new Error('API quota exceeded.');
-    }
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      throw new Error(data?.detail || `HTTP ${response.status}`);
-    }
-
-    // Mock response from backend with the API key info
-    // In production, the backend would return actual data
-    const info: ApiKeyInfo = {
-      maskedKey: this.maskApiKey(key),
-      weeklyQuota: 20,
-      remainingQuota: 20,
-      lastUsedAt: null,
-      quotaResetAt: null,
-    };
-
-    return info;
-  }
-
-  async tagImage(request: TaggingRequest): Promise<TaggingResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/tag/`, {
+  async register(email: string, password: string): Promise<{ id: number; email: string; created_at: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/register/`, {
       method: 'POST',
       headers: this.getHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ email, password, password2: password }),
+    });
+    return this.handleResponse(response);
+  }
+
+  async login(email: string, password: string): Promise<{ id: number; email: string; created_at: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/login/`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
+    });
+    return this.handleResponse(response);
+  }
+
+  async logout(): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/logout/`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      credentials: 'include',
+    });
+    await this.handleResponse(response);
+  }
+
+  async getMe(): Promise<{ id: number; email: string; created_at: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/me/`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+      credentials: 'include',
+    });
+    return this.handleResponse(response);
+  }
+
+  // ============= API Key Management Endpoints =============
+
+  async listAPIKeys(): Promise<Array<{ id: number; masked_key: string; created_at: string; last_used_at: string | null }>> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/keys/`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+      credentials: 'include',
+    });
+    return this.handleResponse(response);
+  }
+
+  async generateAPIKey(): Promise<{ id: number; key: string; masked_key: string; created_at: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/keys/`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({}),
+    });
+    return this.handleResponse(response);
+  }
+
+  async revokeAPIKey(keyId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/keys/${keyId}/`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+      credentials: 'include',
+    });
+    await this.handleResponse(response);
+  }
+
+  // ============= Image Tagging API (uses API key in header) =============
+
+  async tagImage(request: TaggingRequest): Promise<TaggingResponse> {
+    if (!this.apiKey) {
+      throw new Error('No API key available. Generate one from the dashboard first.');
+    }
+
+    const headers = this.getHeaders({
+      'Authorization': `Api-Key ${this.apiKey}`,
+    });
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/tag/`, {
+      method: 'POST',
+      headers,
       body: JSON.stringify(request),
     });
 
     return this.handleResponse(response);
-  }
-
-  async getUsageHistory(): Promise<UsageEntry[]> {
-    // This endpoint does not exist yet, so we return mock data
-    // In production, the backend would provide this endpoint
-    return [
-      {
-        timestamp: new Date().toISOString(),
-        endpoint: '/api/v1/tag/',
-        status: 200,
-        success: true,
-      },
-    ];
-  }
-
-  private maskApiKey(key: string): string {
-    if (key.length <= 8) return key;
-    return `${key.substring(0, 8)}****${key.substring(key.length - 4)}`;
   }
 }
 

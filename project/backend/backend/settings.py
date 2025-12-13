@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure--$)%e&qvgc039w+zqlr0nzl9_@_1=3k#&uhu(k#@6gti(!-k75
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "localhost:3000", "localhost:5173"]
 
 
 # Application definition
@@ -135,11 +135,24 @@ AUTH_USER_MODEL = "accounts.User"
 # DRF configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "accounts.authentication.APIKeyAuthentication",
+        "django.contrib.auth.backends.ModelBackend",  # Session auth for UI
+        "accounts.authentication.APIKeyAuthentication",  # API key auth for API endpoints
     ],
-    # Stage 1 MVP relies on custom API-key quota enforcement inside
-    # APIKeyAuthentication._enforce_quota(), so DRF throttling stays disabled.
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",  # Override per-view
+    ],
 }
 
-# CORS (development only)
-CORS_ALLOW_ALL_ORIGINS = True
+# Session configuration
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 1 week
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+
+# CORS configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+CORS_ALLOW_CREDENTIALS = True

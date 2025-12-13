@@ -10,6 +10,7 @@ from accounts.models import APIKey, UsageLog
 
 
 class APIKeyAuthentication(authentication.BaseAuthentication):
+    """Authenticate using API Key (for API consumption only, not UI auth)."""
     header = "Api-Key"
     keyword = "Api-Key"
 
@@ -71,14 +72,12 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
 
     def _hash_key(self, raw_key: str) -> str:
         from accounts.services.api_key import hash_key
-
         return hash_key(raw_key)
 
     def _enforce_quota(self, user):
         now = timezone.now()
         seven_days_ago = now - timedelta(days=7)
 
-        # Ensure quota checks and reset are atomic to avoid concurrent overrun.
         with transaction.atomic():
             locked_user = (
                 type(user)
@@ -95,8 +94,5 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
 
             usage_count = UsageLog.objects.filter(user=locked_user, used_at__gte=window_start).count()
 
-            # Enforce quota strictly before logging the request.
             if locked_user.weekly_quota == 0 or (usage_count + 1) > locked_user.weekly_quota:
-                # Use DRF Throttled to return HTTP 429 while keeping auth semantics clean.
                 raise Throttled(detail="API quota exceeded.")
-
