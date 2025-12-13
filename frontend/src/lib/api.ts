@@ -25,8 +25,42 @@ class ApiClient {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const error = data?.detail || data?.message || `HTTP ${response.status}`;
-      throw new Error(error);
+      // Try to extract meaningful error message from Django/DRF response
+      let errorMessage = `HTTP ${response.status}`;
+
+      if (data) {
+        // Handle DRF validation errors (field-specific errors)
+        if (typeof data === 'object') {
+          // Check for non_field_errors first
+          if (data.non_field_errors && Array.isArray(data.non_field_errors)) {
+            errorMessage = data.non_field_errors[0];
+          }
+          // Check for detail field (common in DRF)
+          else if (data.detail) {
+            errorMessage = data.detail;
+          }
+          // Check for message field
+          else if (data.message) {
+            errorMessage = data.message;
+          }
+          // For field-specific errors, show the first one
+          else {
+            const firstFieldKey = Object.keys(data)[0];
+            if (firstFieldKey && data[firstFieldKey]) {
+              const fieldErrors = data[firstFieldKey];
+              if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+                errorMessage = `${firstFieldKey}: ${fieldErrors[0]}`;
+              } else if (typeof fieldErrors === 'string') {
+                errorMessage = `${firstFieldKey}: ${fieldErrors}`;
+              }
+            }
+          }
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        }
+      }
+
+      throw new Error(errorMessage);
     }
 
     return data;
