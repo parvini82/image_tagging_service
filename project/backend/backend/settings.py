@@ -135,7 +135,7 @@ AUTH_USER_MODEL = "accounts.User"
 # DRF configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "django.contrib.auth.backends.ModelBackend",  # Session auth for UI
+        "rest_framework.authentication.SessionAuthentication",  # Session auth for UI
         "accounts.authentication.APIKeyAuthentication",  # API key auth for API endpoints
     ],
     "DEFAULT_PERMISSION_CLASSES": [
