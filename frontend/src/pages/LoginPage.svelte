@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { navigate } from 'svelte-spa-router';
+  import { push } from 'svelte-spa-router';
   import { authStore } from '../stores/auth';
   import { apiClient } from '../lib/api';
   import type { ApiKeyInfo } from '../types/api';
@@ -20,7 +20,7 @@
     try {
       const keyInfo: ApiKeyInfo = await apiClient.validateApiKey(apiKey);
       authStore.authenticate(apiKey, keyInfo);
-      navigate('/dashboard');
+      push('/dashboard');
     } catch (err) {
       error = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
     } finally {

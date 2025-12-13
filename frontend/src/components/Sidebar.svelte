@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { location } from 'svelte-spa-router';
+  import { location, push } from 'svelte-spa-router';
   import { authStore } from '../stores/auth';
-  import { navigate } from 'svelte-spa-router';
 
   function handleLogout() {
     authStore.logout();
-    navigate('/login');
+    push('/login');
   }
 
   function isActive(path: string): boolean {
