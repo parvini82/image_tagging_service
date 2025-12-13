@@ -2,7 +2,7 @@
 URL configuration for image_tagging_service project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
+    https://docs.djangoproject.com/en/5.2/howto/url-conf/
 Examples:
 Function views
     1. Add an import:  from my_app import views
@@ -20,5 +20,6 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/v1/auth/", include("accounts.urls")),
     path("api/v1/", include("fashion_tagger.urls")),
 ]
