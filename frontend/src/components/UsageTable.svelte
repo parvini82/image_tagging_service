@@ -63,7 +63,6 @@
       </table>
     </div>
 
-    {/* Pagination */}
     {#if totalPages > 1}
       <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
         <button

@@ -14,13 +14,11 @@
 </script>
 
 <div class="w-64 bg-slate-800 text-white flex flex-col">
-  {/* Logo */}
   <div class="px-6 py-8">
     <h2 class="text-xl font-bold">Tagging API</h2>
     <p class="text-slate-400 text-sm">Dashboard</p>
   </div>
 
-  {/* Navigation */}
   <nav class="flex-1 px-4 space-y-2">
     <a
       href="#/dashboard"
@@ -48,7 +46,6 @@
     </a>
   </nav>
 
-  {/* Logout */}
   <div class="px-4 py-4 border-t border-slate-700">
     <button
       on:click={handleLogout}

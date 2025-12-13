@@ -15,7 +15,6 @@
 
   {#if $authStore.keyInfo}
     <div class="space-y-6">
-      {/* Usage Progress */}
       <div>
         <div class="flex justify-between items-center mb-3">
           <label class="text-sm font-medium text-slate-600">Requests Used</label>
@@ -30,7 +29,6 @@
         <p class="text-xs text-slate-500 mt-2">{percentageUsed}% of quota used</p>
       </div>
 
-      {/* Quota Status */}
       <div class="bg-slate-50 rounded-lg p-4">
         <p class="text-sm text-slate-600 mb-1">Status</p>
         {#if percentageUsed >= 100}
@@ -42,7 +40,6 @@
         {/if}
       </div>
 
-      {/* Info */}
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p class="text-xs text-blue-900">
           Your API quota resets every 7 days. Contact support if you need higher limits.
