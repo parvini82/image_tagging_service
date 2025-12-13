@@ -135,7 +135,7 @@ AUTH_USER_MODEL = "accounts.User"
 # DRF configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",  # Session auth for UI
+        "accounts.authentication.CsrfExemptSessionAuthentication",  # Session auth without CSRF
         "accounts.authentication.APIKeyAuthentication",  # API key auth for API endpoints
     ],
     "DEFAULT_PERMISSION_CLASSES": [
