@@ -38,7 +38,7 @@
         ? 'bg-slate-700 text-white'
         : 'text-slate-300 hover:bg-slate-700/50'}"
     >
-      <span class="font-medium">Dashboard</span>
+      <span class="font-medium">📊 Dashboard</span>
     </a>
     <a
       href="#/dashboard/tagger"
@@ -46,7 +46,7 @@
         ? 'bg-slate-700 text-white'
         : 'text-slate-300 hover:bg-slate-700/50'}"
     >
-      <span class="font-medium">Tagger Playground</span>
+      <span class="font-medium">🏷️ Tagger Playground</span>
     </a>
     <a
       href="#/dashboard/usage"
@@ -54,7 +54,15 @@
         ? 'bg-slate-700 text-white'
         : 'text-slate-300 hover:bg-slate-700/50'}"
     >
-      <span class="font-medium">Usage History</span>
+      <span class="font-medium">📈 Usage History</span>
+    </a>
+    <a
+      href="#/dashboard/docs"
+      class="block px-4 py-3 rounded-lg transition {isActive('/dashboard/docs')
+        ? 'bg-slate-700 text-white'
+        : 'text-slate-300 hover:bg-slate-700/50'}"
+    >
+      <span class="font-medium">📚 API Documentation</span>
     </a>
   </nav>
 
@@ -64,7 +72,7 @@
       disabled={loggingOut}
       class="w-full px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-slate-600 text-white rounded-lg text-sm font-medium transition"
     >
-      {loggingOut ? 'Logging out...' : 'Logout'}
+      {loggingOut ? 'Logging out...' : '🚪 Logout'}
     </button>
   </div>
 </div>

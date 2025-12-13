@@ -9,6 +9,7 @@
   import Dashboard from './pages/Dashboard.svelte';
   import Tagger from './pages/Tagger.svelte';
   import Usage from './pages/Usage.svelte';
+  import ApiDocs from './pages/ApiDocs.svelte';
   import './styles/global.css';
 
   let isInitialized = false;
@@ -43,6 +44,10 @@
     }),
     '/dashboard/usage': wrap({
       component: Usage,
+      conditions: [(detail) => $authStore.isAuthenticated],
+    }),
+    '/dashboard/docs': wrap({
+      component: ApiDocs,
       conditions: [(detail) => $authStore.isAuthenticated],
     }),
     '*': LoginPage,
