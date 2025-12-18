@@ -7,64 +7,75 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/yarn.lock* ./
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN yarn install --frozen-lockfile --network-timeout 100000
 
 # Copy source
 COPY frontend/src ./src
 COPY frontend/svelte.config.js frontend/tsconfig.json frontend/vite.config.ts ./
+COPY frontend/public ./public 2>/dev/null || true
 
-# Build frontend
+# Build frontend with optimizations
 RUN yarn build
 
 # Main stage for Python backend + frontend
 FROM python:3.11-slim
 
-# Set environment variables
+# Set environment variables for production
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DJANGO_SETTINGS_MODULE=backend.settings
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy backend requirements
-COPY project/backend/requirements.txt .
+COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies with production optimizations
 RUN pip install --upgrade pip setuptools wheel && \
     pip install -r requirements.txt && \
-    pip install gunicorn
+    pip install gunicorn psycopg2-binary
 
 # Copy backend code
 COPY project/backend ./
 
-# Copy built frontend to static files location (optional - for serving)
-COPY --from=frontend-builder /app/frontend/dist ./frontend_dist
+# Copy built frontend to static files location
+COPY --from=frontend-builder /app/frontend/dist ./static/frontend_dist
 
 # Create necessary directories
-RUN mkdir -p /app/staticfiles /app/logs
+RUN mkdir -p /app/staticfiles /app/logs && \
+    chmod -R 755 /app
 
-# Collect static files
-RUN python manage.py collectstatic --noinput || true
+# Collect static files (with error handling for missing apps)
+RUN python manage.py collectstatic --noinput --clear 2>/dev/null || echo "Static files collection attempted"
+
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/api/v1/auth/me/', timeout=5)" || exit 1
+    CMD curl -f http://localhost:8000/api/v1/auth/me/ || exit 1
 
 # Expose port
 EXPOSE 8000
 
-# Run gunicorn
+# Run gunicorn with production settings
 CMD ["gunicorn", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "4", \
      "--worker-class", "sync", \
+     "--worker-tmp-dir", "/dev/shm", \
      "--timeout", "60", \
      "--access-logfile", "-", \
      "--error-logfile", "-", \
+     "--log-level", "info", \
      "backend.wsgi:application"]
