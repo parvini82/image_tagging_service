@@ -11,7 +11,6 @@ RUN yarn install --frozen-lockfile
 
 # Copy source
 COPY frontend/src ./src
-COPY frontend/public ./public
 COPY frontend/svelte.config.js frontend/tsconfig.json frontend/vite.config.ts ./
 
 # Build frontend
