@@ -4,28 +4,38 @@ Django>=5.0,<6.0
 # Django REST Framework
 djangorestframework>=3.15.0
 
+# Database
+psycopg2-binary>=2.9.0  # PostgreSQL adapter for production
+
 # Authentication & Security
 python-dotenv>=1.0.1
-
-# Useful utilities for hashing / security
 passlib>=1.7.4
 
-# For image handling (Pillow is needed for image processing)
+# CORS support for frontend communication
+django-cors-headers>=4.3.0
+
+# Image handling and processing
 Pillow>=10.0.0
 
-# For async pipelines, LLMs, or LangGraph integration later
+# AI/ML integrations
 langchain>=0.3.0
 langgraph>=0.1.0
 
-# HTTP requests (fetching remote images)
+# HTTP requests for fetching remote images
 requests>=2.32.0
 
-# Rate limiting or throttling helpers
+# Rate limiting and throttling
 django-ratelimit>=4.0.0
 
-# Testing tools (optional but recommended)
+# Production server
+gunicorn>=21.0.0
+
+# Environment variable management
+python-decouple>=3.8
+
+# Database URL parsing
+dj-database-url>=2.0.0
+
+# Testing tools (optional)
 pytest>=8.0.0
 pytest-django>=4.8.0
-
-# For CORS when frontend connects later
-django-cors-headers>=4.3.0
