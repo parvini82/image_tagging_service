@@ -51,7 +51,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/auth/me/"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/admin/login/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
