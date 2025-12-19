@@ -8,7 +8,7 @@ from .image_to_tags import image_to_tags_node
 from .merge_results import merge_results_node
 from .serpapi_search import serpapi_search_node
 from .translate_tags import translate_tags_node
-from .config import get_vision_model, get_translate_model, should_use_serpapi
+from .config import VISION_MODEL, TRANSLATE_MODEL, USE_SERPAPI
 
 logger = logging.getLogger(__name__)
 DEBUG_LANGGRAPH = os.getenv("DEBUG_LANGGRAPH", "").lower() == "true"
@@ -85,10 +85,6 @@ class WorkflowState(TypedDict, total=False):
     merged_data: Annotated[Dict[str, Any], operator.or_]
     image_tags_fa: Annotated[Dict[str, Any], operator.or_]
     final_output: Annotated[Dict[str, Any], operator.or_]
-    mode: Annotated[str, last]  # Track the mode
-    vision_model: Annotated[str, last]
-    translate_model: Annotated[str, last]
-    use_serpapi: Annotated[bool, last]
 
 
 def fan_out_node(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -108,18 +104,9 @@ def merge_for_translate_node(state: Dict[str, Any]) -> Dict[str, Any]:
     return {**state, "merged_data": merged_data}
 
 
-def should_use_serpapi_node(state: Dict[str, Any]) -> str:
-    """Conditional edge: determine if serpapi should be used"""
-    if state.get("use_serpapi", False):
-        return "serpapi_search"
-    else:
-        return "merge_for_translate"
-
-
-def _compile_workflow(mode: str = "fast") -> StateGraph:
+def _compile_workflow() -> StateGraph:
+    """Compile the LangGraph workflow with advanced_reasoning mode."""
     workflow: StateGraph = StateGraph(WorkflowState)
-
-    use_serpapi = should_use_serpapi(mode)
 
     # Nodes - wrap with debug instrumentation if enabled
     workflow.add_node("fan_out", _debug_wrap_node(fan_out_node, "fan_out"))
@@ -134,15 +121,11 @@ def _compile_workflow(mode: str = "fast") -> StateGraph:
     # Always go from fan_out to image_to_tags
     workflow.add_edge("fan_out", "image_to_tags")
 
-    if use_serpapi:
-        # Add serpapi node and edges - wrap with debug instrumentation if enabled
-        workflow.add_node("serpapi_search", _debug_wrap_node(serpapi_search_node, "serpapi_search"))
-        workflow.add_edge("fan_out", "serpapi_search")
-        workflow.add_edge("image_to_tags", "merge_for_translate")
-        workflow.add_edge("serpapi_search", "merge_for_translate")
-    else:
-        # Skip serpapi, go directly from image_to_tags to merge_for_translate
-        workflow.add_edge("image_to_tags", "merge_for_translate")
+    # Add serpapi node (always enabled in advanced_reasoning mode)
+    workflow.add_node("serpapi_search", _debug_wrap_node(serpapi_search_node, "serpapi_search"))
+    workflow.add_edge("fan_out", "serpapi_search")
+    workflow.add_edge("image_to_tags", "merge_for_translate")
+    workflow.add_edge("serpapi_search", "merge_for_translate")
 
     # Continue sequence
     workflow.add_edge("merge_for_translate", "translate_tags")
@@ -153,25 +136,15 @@ def _compile_workflow(mode: str = "fast") -> StateGraph:
     return workflow.compile()
 
 
-def run_langgraph_on_bytes(image_bytes: bytes, mode: str = "fast") -> Dict[str, Any]:
+def run_langgraph_on_bytes(image_bytes: bytes) -> Dict[str, Any]:
     """Convenience entry: image bytes → data URI → invoke graph."""
     b64 = base64.b64encode(image_bytes).decode("utf-8")
     data_uri = f"data:image/jpeg;base64,{b64}"
 
-    # Get configuration based on mode
-    vision_model = get_vision_model(mode)
-    translate_model = get_translate_model(mode)
-    use_serpapi_flag = should_use_serpapi(mode)
-
-    # Compile workflow based on mode
-    workflow = _compile_workflow(mode)
+    workflow = _compile_workflow()
 
     initial_state = {
         "image_url": data_uri,
-        "mode": mode,
-        "vision_model": vision_model,
-        "translate_model": translate_model,
-        "use_serpapi": use_serpapi_flag
     }
 
     final_state = workflow.invoke(initial_state)
@@ -182,22 +155,12 @@ def run_langgraph_on_bytes(image_bytes: bytes, mode: str = "fast") -> Dict[str, 
     }
 
 
-def run_langgraph_on_url(image_url: str, mode: str = "fast") -> Dict[str, Any]:
+def run_langgraph_on_url(image_url: str) -> Dict[str, Any]:
     """Convenience entry: image URL → invoke graph."""
-    # Get configuration based on mode
-    vision_model = get_vision_model(mode)
-    translate_model = get_translate_model(mode)
-    use_serpapi_flag = should_use_serpapi(mode)
-
-    # Compile workflow based on mode
-    workflow = _compile_workflow(mode)
+    workflow = _compile_workflow()
 
     initial_state = {
         "image_url": image_url,
-        "mode": mode,
-        "vision_model": vision_model,
-        "translate_model": translate_model,
-        "use_serpapi": use_serpapi_flag
     }
 
     final_state = workflow.invoke(initial_state)
