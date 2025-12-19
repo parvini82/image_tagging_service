@@ -32,8 +32,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    weekly_quota = models.PositiveIntegerField(default=20)
-    quota_reset_at = models.DateTimeField(null=True, blank=True)
+    
+    # Daily tagging limit tracking
+    daily_tagging_count = models.PositiveIntegerField(default=0, help_text="Number of tagging requests used today")
+    daily_count_reset_at = models.DateTimeField(null=True, blank=True, help_text="UTC timestamp of last daily reset")
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: list[str] = []
