@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { push } from 'svelte-spa-router';
   import Router from 'svelte-spa-router';
   import { wrap } from 'svelte-spa-router/wrap';
   import { authStore } from './stores/auth';
@@ -19,6 +20,7 @@
       const user = await apiClient.getMe();
       authStore.restoreSession(user);
     } catch (err) {
+      // User not authenticated, this is normal
       authStore.logout();
     } finally {
       isInitialized = true;
@@ -50,12 +52,15 @@
       component: ApiDocs,
       conditions: [(detail) => $authStore.isAuthenticated],
     }),
-    '*': LoginPage,
   };
+
+  function onRouterReady() {
+    // Router is ready, navigation can begin
+  }
 </script>
 
 {#if isInitialized}
-  <Router {routes} />
+  <Router {routes} on:routeFailed={() => push('/login')} on:conditionsFailed={() => push('/login')} />
 {:else}
   <div class="flex items-center justify-center min-h-screen bg-slate-50">
     <div class="text-slate-600">Initializing...</div>
