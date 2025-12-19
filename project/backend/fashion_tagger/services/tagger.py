@@ -12,7 +12,7 @@ from .langgraph_integration.langgraph_service import run_langgraph_on_url
 logger = logging.getLogger(__name__)
 
 
-def generate_tags(image_url: str, mode: str = "advanced_reasoning") -> Dict[str, Any]:
+def generate_tags(image_url: str) -> Dict[str, Any]:
     """Generate tags for an image using the LangGraph pipeline.
     
     This function returns raw LangGraph output without modification.
@@ -20,21 +20,22 @@ def generate_tags(image_url: str, mode: str = "advanced_reasoning") -> Dict[str,
     the pipeline produces. No normalization, filtering, or schema
     enforcement is applied.
     
+    Uses advanced_reasoning mode with vision model, serpapi search,
+    and translation enabled.
+    
     Args:
         image_url: Public URL of the product image to analyze
-        mode: Processing mode - "fast", "reasoning", "advanced_reasoning"
     
     Returns:
         Raw LangGraph output as-is. On any exception, returns an empty dict {}.
     """
     try:
-        result = run_langgraph_on_url(image_url, mode=mode)
+        result = run_langgraph_on_url(image_url)
         return result
     except Exception as e:
         logger.error(
-            "Error while generating tags for %s (mode=%s): %s",
+            "Error while generating tags for %s: %s",
             image_url,
-            mode,
             str(e),
             exc_info=True,
         )
