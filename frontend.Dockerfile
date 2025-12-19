@@ -24,26 +24,30 @@ COPY frontend/postcss.config.js ./
 # Build frontend
 RUN yarn build
 
-# Stage 2: Serve with Nginx (using cgr.dev mirror)
-FROM cgr.dev/chainguard/nginx:latest
+# Stage 2: Minimal Nginx setup
+FROM alpine:3.19
 
-# Switch to root for setup
-USER root
+# Install nginx and curl for health checks
+RUN apk add --no-cache nginx curl && \
+    mkdir -p /run/nginx && \
+    mkdir -p /usr/share/nginx/html && \
+    chown -R nginx:nginx /usr/share/nginx/html /var/lib/nginx /var/log/nginx
 
 # Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/http.d/default.conf
 
 # Copy built frontend from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
-# Fix permissions
-RUN chown -R nginx:nginx /usr/share/nginx/html
-
-# Switch back to nginx user
-USER nginx
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost/ || exit 1
 
 # Expose port
 EXPOSE 80
 
-# Start nginx
+# Run as nginx user
+USER nginx
+
+# Start nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]
