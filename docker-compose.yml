@@ -58,6 +58,8 @@ services:
       start_period: 40s
 
   # PostgreSQL - Production Database (PostgreSQL only)
+  # Note: Port removed to avoid conflict with system PostgreSQL
+  # Access via docker network internally or use: docker compose exec postgres psql
   postgres:
     image: postgres:16-alpine
     container_name: image_tagging_db
@@ -75,8 +77,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    ports:
-      - "5432:5432"
+    # Removed external port mapping to avoid conflict
+    # If you need external access, stop system PostgreSQL or use:
+    # ports:
+    #   - "5433:5432"
 
 volumes:
   postgres_data:
