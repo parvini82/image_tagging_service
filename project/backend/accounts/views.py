@@ -15,6 +15,7 @@ from .serializers import (
     APIKeyCreateSerializer,
 )
 from .services.api_key import generate_api_key
+from .authentication import DailyLimitChecker
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -73,6 +74,16 @@ class MeView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class UsageInfoView(APIView):
+    """Get current user's daily tagging usage info."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        usage_info = DailyLimitChecker.get_usage_info(request.user)
+        return Response(usage_info, status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
