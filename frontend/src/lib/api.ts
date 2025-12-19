@@ -106,6 +106,17 @@ class ApiClient {
     return this.handleResponse(response);
   }
 
+  // ============= Usage Info Endpoint =============
+
+  async getUsageInfo(): Promise<{ used: number; limit: number; remaining: number }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/usage/`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+      credentials: 'include',
+    });
+    return this.handleResponse(response);
+  }
+
   // ============= API Key Management Endpoints =============
 
   async listAPIKeys(): Promise<Array<{ id: number; masked_key: string; created_at: string; last_used_at: string | null }>> {
@@ -136,7 +147,20 @@ class ApiClient {
     await this.handleResponse(response);
   }
 
-  // ============= Image Tagging API (uses API key in header) =============
+  // ============= Image Tagging API (Session-based for UI) =============
+
+  async tagImageWithSession(request: TaggingRequest): Promise<TaggingResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/tag/`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  // ============= Image Tagging API (API Key for external usage) =============
 
   async tagImage(request: TaggingRequest): Promise<TaggingResponse> {
     if (!this.apiKey) {
