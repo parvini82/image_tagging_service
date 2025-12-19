@@ -1,6 +1,5 @@
 export interface TaggingRequest {
   image_url: string;
-  mode?: 'fast' | 'reasoning' | 'advanced_reasoning';
 }
 
 export interface TaggingResponse {
