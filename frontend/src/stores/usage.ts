@@ -1,14 +1,19 @@
 import { writable } from 'svelte/store';
-import type { UsageEntry } from '../types/api';
+
+interface UsageInfo {
+  used: number;
+  limit: number;
+  remaining: number;
+}
 
 interface UsageState {
-  entries: UsageEntry[];
+  info: UsageInfo | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: UsageState = {
-  entries: [],
+  info: null,
   loading: false,
   error: null,
 };
@@ -18,14 +23,27 @@ function createUsageStore() {
 
   return {
     subscribe,
-    setEntries: (entries: UsageEntry[]) => {
-      update((state) => ({ ...state, entries }));
+    setInfo: (info: UsageInfo) => {
+      update((state) => ({ ...state, info }));
     },
     setLoading: (loading: boolean) => {
       update((state) => ({ ...state, loading }));
     },
     setError: (error: string | null) => {
       update((state) => ({ ...state, error }));
+    },
+    incrementUsage: () => {
+      update((state) => {
+        if (!state.info) return state;
+        return {
+          ...state,
+          info: {
+            ...state.info,
+            used: state.info.used + 1,
+            remaining: state.info.remaining - 1,
+          },
+        };
+      });
     },
     reset: () => {
       set(initialState);
