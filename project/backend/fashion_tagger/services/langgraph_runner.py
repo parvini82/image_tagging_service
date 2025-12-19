@@ -6,22 +6,23 @@ without any business logic or output modification.
 
 from typing import Dict, Any
 import logging
-import os
 
 from .langgraph_integration.langgraph_service import run_langgraph_on_url
 
 logger = logging.getLogger(__name__)
 
 
-def run_image_tagger(image_url: str, mode: str = "fast") -> Dict[str, Any]:
+def run_image_tagger(image_url: str) -> Dict[str, Any]:
     """Run the LangGraph image tagging pipeline.
     
     This is a thin wrapper that calls the LangGraph workflow and handles
     exceptions. It does not modify, normalize, or restructure the output.
     
+    Uses advanced_reasoning mode with vision model, serpapi search,
+    and translation enabled.
+    
     Args:
         image_url: Public URL of the product image to analyze
-        mode: Processing mode - "fast" (default), "reasoning", "advanced_reasoning"
     
     Returns:
         Dict with keys:
@@ -31,13 +32,12 @@ def run_image_tagger(image_url: str, mode: str = "fast") -> Dict[str, Any]:
         On failure, returns empty dicts: {"english": {}, "persian": {}}
     """
     try:
-        result = run_langgraph_on_url(image_url, mode=mode)
+        result = run_langgraph_on_url(image_url)
         return result
     except Exception as e:
         logger.error(
-            "Error in LangGraph image tagging pipeline for %s (mode=%s): %s",
+            "Error in LangGraph image tagging pipeline for %s: %s",
             image_url,
-            mode,
             str(e),
             exc_info=True,
         )
