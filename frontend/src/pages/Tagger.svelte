@@ -5,7 +5,6 @@
   import type { TaggingResponse } from '../types/api';
 
   let imageUrl = '';
-  let mode: 'fast' | 'reasoning' | 'advanced_reasoning' = 'fast';
   let loading = false;
   let error = '';
   let result: TaggingResponse | null = null;
@@ -23,7 +22,6 @@
     try {
       result = await apiClient.tagImage({
         image_url: imageUrl,
-        mode,
       });
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to tag image';
@@ -67,22 +65,6 @@
                 class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 disabled={loading}
               />
-            </div>
-
-            <div>
-              <label for="mode" class="block text-sm font-medium text-slate-700 mb-2">
-                Tagging Mode
-              </label>
-              <select
-                id="mode"
-                bind:value={mode}
-                class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                disabled={loading}
-              >
-                <option value="fast">Fast</option>
-                <option value="reasoning">Reasoning</option>
-                <option value="advanced_reasoning">Advanced Reasoning</option>
-              </select>
             </div>
 
             {#if error}
