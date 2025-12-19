@@ -13,11 +13,14 @@ RUN yarn install --frozen-lockfile --network-timeout 100000
 COPY frontend/src ./src
 COPY frontend/svelte.config.js frontend/tsconfig.json frontend/vite.config.ts ./
 COPY frontend/public ./public 2>/dev/null || true
+COPY frontend/static ./static 2>/dev/null || true
 
 # Build frontend with optimizations
 RUN yarn build
 
+# ============================================
 # Main stage for Python backend + frontend
+# ============================================
 FROM python:3.11-slim
 
 # Set environment variables for production
@@ -32,6 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     postgresql-client \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -51,11 +55,8 @@ COPY project/backend ./
 COPY --from=frontend-builder /app/frontend/dist ./static/frontend_dist
 
 # Create necessary directories
-RUN mkdir -p /app/staticfiles /app/logs && \
+RUN mkdir -p /app/staticfiles /app/logs /app/media && \
     chmod -R 755 /app
-
-# Collect static files (with error handling for missing apps)
-RUN python manage.py collectstatic --noinput --clear 2>/dev/null || echo "Static files collection attempted"
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
@@ -74,7 +75,7 @@ CMD ["gunicorn", \
      "--workers", "4", \
      "--worker-class", "sync", \
      "--worker-tmp-dir", "/dev/shm", \
-     "--timeout", "60", \
+     "--timeout", "120", \
      "--access-logfile", "-", \
      "--error-logfile", "-", \
      "--log-level", "info", \
