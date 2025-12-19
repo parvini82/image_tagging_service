@@ -1,10 +1,28 @@
 version: '3.8'
 
 services:
+  # Frontend - Nginx web server
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    container_name: image_tagging_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Backend - Django REST API
   backend:
-    # Production: Use pre-built image from Docker Hub
-    # image: ${DOCKER_USERNAME}/image_tagging_service:${IMAGE_TAG:-latest}
-    # Local development: Build from Dockerfile
     build: .
     container_name: image_tagging_backend
     restart: unless-stopped
@@ -21,8 +39,8 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-image_tagging_db}
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
-      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:80,http://localhost:3000,http://localhost:5173}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:80,http://localhost:3000,http://localhost:5173}
       - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-False}
       - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-False}
       - CSRF_COOKIE_SECURE=${CSRF_COOKIE_SECURE:-False}
@@ -57,9 +75,7 @@ services:
       retries: 3
       start_period: 40s
 
-  # PostgreSQL - Production Database (PostgreSQL only)
-  # Note: Port removed to avoid conflict with system PostgreSQL
-  # Access via docker network internally or use: docker compose exec postgres psql
+  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: image_tagging_db
@@ -77,10 +93,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    # Removed external port mapping to avoid conflict
-    # If you need external access, stop system PostgreSQL or use:
-    # ports:
-    #   - "5433:5432"
 
 volumes:
   postgres_data:
