@@ -151,14 +151,20 @@ SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() == "
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 
-# CORS configuration - Allow frontend on port 80
-CORS_ALLOWED_ORIGINS = os.getenv(
-    "CORS_ALLOWED_ORIGINS",
-    "http://localhost,http://localhost:80,http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173"
-).split(",")
-CORS_ALLOW_CREDENTIALS = True
+# CORS configuration - More permissive for development
+if DEBUG:
+    # Development: Allow all origins
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_CREDENTIALS = True
+else:
+    # Production: Specific origins only
+    CORS_ALLOWED_ORIGINS = os.getenv(
+        "CORS_ALLOWED_ORIGINS",
+        "http://localhost,http://localhost:80"
+    ).split(",")
+    CORS_ALLOW_CREDENTIALS = True
 
-# CSRF configuration - Allow frontend on port 80
+# CSRF configuration
 CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS",
     "http://localhost,http://localhost:80,http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173"
