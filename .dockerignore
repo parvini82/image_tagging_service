@@ -3,11 +3,54 @@
 .gitignore
 .gitattributes
 
+# Documentation
+README.md
+DOCKER_DEPLOYMENT_GUIDE.md
+DOCKER_HUB_README.md
+PRODUCTION_DEPLOYMENT_CHECKLIST.md
+MIGRATION_SUMMARY.md
+DEPLOYMENT_READY.txt
+FULLSTACK_GUIDE.md
+
+# Frontend
+frontend/node_modules
+frontend/.venv
+frontend/dist
+frontend/.env
+frontend/.env.local
+
+# Backend
+project/backend/.venv
+project/backend/__pycache__
+project/backend/*.pyc
+project/backend/*.pyo
+project/backend/*.pyd
+project/backend/.pytest_cache
+project/backend/.coverage
+project/backend/htmlcov
+project/backend/db.sqlite3
+project/backend/media
+project/backend/staticfiles
+project/backend/logs
+
+# Development
+.vscode
+.idea
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+.hamravesh.env
+
+# Docker
+Docker_Compose.override.yml
+
 # Python
-__pycache__
-*.py[cod]
-*$py.class
-*.so
 .Python
 env/
 venv/
@@ -32,30 +75,21 @@ wheels/
 node_modules/
 npm-debug.log
 yarn-error.log
-.yarn/cache
 
-# Django
-*.sqlite3
-db.sqlite3
-local_settings.py
-/staticfiles/
-/media/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# OS
 .DS_Store
+Thumbs.db
 
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Misc
+# Testing
 .pytest_cache/
 .coverage
-.mypy_cache/
-.eslintcache
+htmlcov/
+
+# Database
+*.sql
+backup.*
+
+# Temporary
+*.tmp
+*.temp
+*.bak
