@@ -24,11 +24,11 @@ COPY frontend/postcss.config.js ./
 # Build frontend
 RUN yarn build
 
-# Stage 2: Serve with Nginx
-FROM nginx:alpine
+# Stage 2: Serve with Nginx (using cgr.dev mirror)
+FROM cgr.dev/chainguard/nginx:latest
 
-# Remove default nginx config
-RUN rm /etc/nginx/conf.d/default.conf
+# Switch to root for setup
+USER root
 
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -36,13 +36,11 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built frontend from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Create nginx cache directories
-RUN mkdir -p /var/cache/nginx && \
-    chown -R nginx:nginx /var/cache/nginx /usr/share/nginx/html
+# Fix permissions
+RUN chown -R nginx:nginx /usr/share/nginx/html
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
+# Switch back to nginx user
+USER nginx
 
 # Expose port
 EXPOSE 80
