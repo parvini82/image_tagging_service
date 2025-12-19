@@ -3,17 +3,21 @@ FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Copy frontend files
+# Copy frontend package files
 COPY frontend/package.json frontend/yarn.lock* ./
 
 # Install dependencies
 RUN yarn install --frozen-lockfile --network-timeout 100000
 
-# Copy source
+# Copy frontend source files
 COPY frontend/src ./src
-COPY frontend/svelte.config.js frontend/tsconfig.json frontend/vite.config.ts ./
-COPY frontend/public ./public 2>/dev/null || true
-COPY frontend/static ./static 2>/dev/null || true
+COPY frontend/index.html ./
+COPY frontend/svelte.config.js ./
+COPY frontend/tsconfig.json ./
+COPY frontend/tsconfig.app.json ./
+COPY frontend/vite.config.ts ./
+COPY frontend/tailwind.config.js ./
+COPY frontend/postcss.config.js ./
 
 # Build frontend with optimizations
 RUN yarn build
